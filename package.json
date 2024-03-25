@@ -1,0 +1,15 @@
+{
+  "name": "vsge-woo-product-to-pdf",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "js-beautify":  "^1.15.1",
+    "pdfmake": "^0.2.10",
+    "typescript": "^5.4.3"
+  },
+  "private": true
+}

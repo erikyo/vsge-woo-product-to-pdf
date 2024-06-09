@@ -18,7 +18,7 @@ add_action( 'init', function() {
 /**
  * edited generate schema function
  */
-function vsge_generate_product_data( $product = null ) {
+function the_product_data( $product = null ) {
 
     if ( ! is_object( $product ) ) {
         global $product;
@@ -57,9 +57,9 @@ function vsge_generate_product_data( $product = null ) {
         echo '<script id="productData" type="application/ld+json">' . wc_esc_json( wp_json_encode( $json, JSON_PRETTY_PRINT ), true ) . '</script>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 }
-function brb_add_structured_data() {
+function vsge_generate_product_data() {
     if (!is_admin() && class_exists( 'woocommerce' ) && is_product()) {
-        brb_generate_product_data();
+        the_product_data();
     }
 }
-add_action( 'wp_footer', "brb_add_structured_data", 1 );
+add_action( 'wp_footer', "vsge_generate_product_data", 1 );

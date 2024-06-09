@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "vsge/save-pdf-button",
+  "version": "0.1.0",
+  "title": "Save PDF Button",
+  "category": "vsge",
+  "textdomain": "vsge-woo-product-to-pdf",
+  "attributes": {
+    "title": {
+      "type": "string",
+      "default": "Save PDF"
+    },
+    "icon": {
+      "type": "string",
+      "default": "dashicons-media-document"
+    }
+  },
+  "supports": {
+    "html": false,
+    "align": true,
+    "dimensions": {
+      "minHeight": true
+    },
+    "spacing": {
+      "margin": true,
+      "padding": true,
+      "blockGap": true
+    }
+  },
+  "editorScript": "file:./index.js",
+  "viewScript": "file:./view.js"
+}

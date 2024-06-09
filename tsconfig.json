@@ -1,26 +1,24 @@
 {
+	"extends": "@wp-blocks/tsconfig",
 	"compilerOptions": {
-		"noImplicitAny": true,
-		"removeComments": true,
-		"preserveConstEnums": true,
-		"sourceMap": true,
-		"strict": true,
-		"downlevelIteration": true,
-		"esModuleInterop": true,
-		"allowSyntheticDefaultImports": true,
-		"experimentalDecorators": true,
-		"rootDir": "src",
-		"outDir": "lib/esm",
-		// Minify
-		"pretty": false,
-		// types
-		"typeRoots": [
-			"src/types.d.ts",
-			"node_modules/@types",
-			"@types"
-		]
+		"target": "ES2022",
+		"module": "ES2022",
+		"jsx": "react-jsx",
+		"moduleResolution": "node",
+		// Search under node_modules for non-relative imports.
+		"allowJs": true,
+		// Process & infer types from .js files.
+		"noEmit": true,
+		// Don't emit; allow Babel to transform files.
+		"outDir": "build",
+		"baseUrl": "src",
+		"allowSyntheticDefaultImports": true
 	},
 	"include": [
 		"./src/**/*"
+	],
+	"exclude": [
+		"coverage",
+		"docs"
 	]
 }

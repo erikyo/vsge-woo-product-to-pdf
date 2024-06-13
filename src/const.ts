@@ -2,13 +2,36 @@
 export const assetsPath = 'assets';
 export const mainColorHex = '#f00';
 
-export const fonts: Record< string, Record< string, string > > = {
-	Klavika: {
-		normal: assetsPath + '/assets/fonts/klavika-light-webfont.ttf',
-		italics: assetsPath + '/assets/fonts/klavika-light-italic-webfont.ttf',
-		bold: assetsPath + '/assets/fonts/klavika-medium-webfont.ttf',
-		bolditalics: assetsPath + '/assets/fonts/klavika-bold-webfont.ttf',
+/**
+ *
+ * @param font
+ * @param variations
+ * @param path
+ */
+function getFontSet(
+	variations: { name: string; filename: string }[],
+	path: string
+) {
+	const fontSet = {};
+	variations.forEach((variation) => {
+		fontSet[variation.name] = path + variation.filename;
+	});
+	return fontSet;
+}
+
+const font = 'Klavika';
+const fontData = [
+	{ name: 'light', filename: '/assets/fonts/klavika-light-webfont.ttf' },
+	{
+		name: 'italics',
+		filename: '/assets/fonts/klavika-light-italic-webfont.ttf',
 	},
+	{ name: 'bold', filename: '/assets/fonts/klavika-medium-webfont.ttf' },
+	{ name: 'bolditalics', filename: '/assets/fonts/klavika-bold-webfont.ttf' },
+];
+
+export const fonts: { [key: string]: Record<string, string> } = {
+	[font]: getFontSet(fontData, assetsPath),
 };
 
 export const ProductPageTabs = [
@@ -30,10 +53,10 @@ export const beautifyArgs = {
 };
 
 // convert millimeters to points (the ratio is 2.835)
-export const mmToPoints = ( val ) => val * 2.835;
+export const mmToPoints = (val) => val * 2.835;
 
 export const pageSize = {
-	width: mmToPoints( 210.0 ),
-	height: mmToPoints( 297.0 ),
+	width: mmToPoints(210.0),
+	height: mmToPoints(297.0),
 };
-export const pageMargins = [ 20, 40, 20, 30 ];
+export const pageMargins = [20, 40, 20, 30];

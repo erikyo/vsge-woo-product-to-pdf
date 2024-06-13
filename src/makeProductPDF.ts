@@ -6,7 +6,7 @@ import {
 	pageSize,
 	ProductPageTabs,
 } from './const';
-import { FONTS, ProductData } from './types';
+import { FONTS, ProductApiResponse, ProductData } from './types';
 import beautify from 'js-beautify';
 import { ifElement, yyyymmdd } from './utils';
 
@@ -15,6 +15,15 @@ type MediaImage = {
 	mainImage: string;
 	brandImage: string;
 };
+
+const metadataType = [
+	'_cdmm_p_id',
+	'_company',
+	'brb_media_brochure',
+	'brb_media_3d_model',
+	'brb_media_3d_model_preview',
+	'brb_media_manuals',
+];
 
 export class makeProductPDF {
 	productPDF: Record<string, any> | null;
@@ -37,17 +46,22 @@ export class makeProductPDF {
 	productData: Record<string, any>;
 	dd: Record<string, any>;
 
-	constructor(args: { fonts: FONTS }) {
+	constructor(args: { fonts: FONTS; productData: ProductApiResponse }) {
 		this.fonts = args.fonts;
+		this.productData = args.productData;
+
+		console.log(this.productData);
 
 		this.date = new Date();
+
 		this.productPDF = this.getPageData();
 		this.html = this.getWebpageData(this.productPDF);
-		this.productData = this.getJsonProductData();
+		//this.productData = this.getJsonProductData();
 
 		const companyImage = document.querySelector(
-			'.custom-logo'
+			'.wp-block-site-logo'
 		) as HTMLImageElement;
+
 		this.html.mediaImages = {
 			mainImage:
 				document
@@ -61,12 +75,6 @@ export class makeProductPDF {
 		};
 
 		this.pdfMake.fonts = fonts;
-
-		// the header of the product pdf
-		this.pdfContent.push(this.generateHeder(this.pdfContent));
-
-		// a link to the real product page on the website (with qr code)
-		this.pdfContent.push(this.generateLink(this.pdfContent.url));
 
 		if (this.html.media) {
 			this.html.media = this.mapDOM(this.html.media, false);
@@ -119,6 +127,12 @@ export class makeProductPDF {
 			);
 		}
 
+		// the header of the product pdf
+		this.pdfContent.push(this.generateHeder(this.pdfContent));
+
+		// a link to the real product page on the website (with qr code)
+		this.pdfContent.push(this.generateLink(this.pdfContent.url));
+
 		// THE PDF DATA
 		this.dd = this.getDD(this.pdfContent);
 	}
@@ -149,7 +163,7 @@ export class makeProductPDF {
 	}
 
 	getWebpageData(
-		productData,
+		productData: Record<string, any>,
 		tabs = ProductPageTabs
 	): Record<string, string> | {} {
 		const productDataset: Record<string, string> = {};

@@ -16,13 +16,8 @@ import metadata from './block.json';
  *
  * @see https://developer.wordpress.org/block-editor/reference-guides/block-api/block-registration/
  */
-registerBlockType(metadata.name, {
-	/**
-	 * @see ./edit.js
-	 */
-	edit: () => <Button>PDF</Button>,
-	/**
-	 * @see ./save.js
-	 */
-	save: () => <Button>PDF</Button>,
-});
+registerBlockType( metadata.name, {
+	edit: () => {
+		return <Button>PDF</Button>;
+	},
+} );

@@ -13,9 +13,9 @@ function getFontSet(
 	path: string
 ) {
 	const fontSet = {};
-	variations.forEach((variation) => {
-		fontSet[variation.name] = path + variation.filename;
-	});
+	variations.forEach( ( variation ) => {
+		fontSet[ variation.name ] = path + variation.filename;
+	} );
 	return fontSet;
 }
 
@@ -30,8 +30,8 @@ const fontData = [
 	{ name: 'bolditalics', filename: '/assets/fonts/klavika-bold-webfont.ttf' },
 ];
 
-export const fonts: { [key: string]: Record<string, string> } = {
-	[font]: getFontSet(fontData, assetsPath),
+export const fonts: { [ key: string ]: Record< string, string > } = {
+	[ font ]: getFontSet( fontData, assetsPath ),
 };
 
 export const ProductPageTabs = [
@@ -53,10 +53,12 @@ export const beautifyArgs = {
 };
 
 // convert millimeters to points (the ratio is 2.835)
-export const mmToPoints = (val) => val * 2.835;
+export const mmToPoints = ( val ) => val * 2.835;
 
 export const pageSize = {
-	width: mmToPoints(210.0),
-	height: mmToPoints(297.0),
+	width: mmToPoints( 210.0 ),
+	height: mmToPoints( 297.0 ),
 };
-export const pageMargins = [20, 40, 20, 30];
+export const pageMargins: [ number, number, number, number ] = [
+	20, 40, 20, 30,
+];

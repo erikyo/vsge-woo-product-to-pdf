@@ -19,11 +19,11 @@ function the_product_data( $product = null ) {
 
     $json = array (
         "data" => $product,
-            'brand'        => array(
-                'name'  => $shop_name,
-                'url'   => $site_url,
-                'image' => has_custom_logo() ? wp_get_attachment_image_src($custom_logo_id, 'full')[0] : ''
-            )
+        'brand'        => array(
+            'name'  => $shop_name,
+            'url'   => $site_url,
+            'image' => has_custom_logo() ? wp_get_attachment_image_src($custom_logo_id, 'full')[0] : ''
+        )
     );
 
     if ( $json ) {
@@ -37,35 +37,3 @@ function vsge_generate_product_data() {
     }
 }
 add_action( 'wp_footer', "vsge_generate_product_data", 1 );
-
-function register_rest_field_approvals() {
-    register_rest_field('product', "approvals",
-        array( "get_callback" => function ($post) {
-            return wp_get_post_terms( $post['id'], 'product_approvals');
-        } )
-    );
-}
-add_action( 'rest_api_init', 'register_rest_field_approvals');
-
-
-function register_rest_field_application() {
-    register_rest_field('product', "application",
-        array( "get_callback" => function ($post) {
-            return wp_get_post_terms( $post['id'], 'product_application');
-        } )
-    );
-}
-add_action( 'rest_api_init', 'register_rest_field_application');
-
-
-function register_rest_field_linked_product() {
-    $types = array( "accessories","related", "similar", "components", "delivery", "package");
-    foreach ( $types as $type ) {
-        register_rest_field('product', $type,
-            array( "get_callback" => function ($post) use ( $type ) {
-                return get_post_meta( $post['id'], '_' . $type . '_ids', true );
-            } )
-        );
-    }
-}
-add_action( 'rest_api_init', 'register_rest_field_linked_product');

@@ -3,6 +3,14 @@ import { Attribute, FONTS, ProductApiResponse } from './types';
 import beautify, { JSBeautifyOptions } from 'js-beautify';
 import { ifElement, yyyymmdd } from './utils';
 import pdfMake, { TCreatedPdf } from 'pdfmake/build/pdfmake';
+import {
+	Content,
+	DynamicContent,
+	Node,
+	Style,
+	StyleDictionary,
+	TDocumentDefinitions,
+} from 'pdfmake/interfaces';
 
 type MediaImage = {
 	logoImg: HTMLImageElement;
@@ -37,18 +45,100 @@ interface ParsedProductData {
 	slug: string;
 }
 
+export const baseStyle: Style = {
+	fontSize: 9,
+	lineHeight: 1.2,
+	columnGap: 20,
+	font: 'Klavika',
+};
+
+export const mainStyle: StyleDictionary = {
+	// Wrappers
+	header: {
+		margin: [ 0, 0, 0, 10 ],
+	},
+
+	// Product Title section
+	productTitle: {
+		fontSize: 16,
+		bold: true,
+		margin: [ 0, 15, 0, 0 ],
+	},
+
+	productSubTitle: {
+		fontSize: 9,
+		bold: false,
+		margin: [ 0, 0, 0, 15 ],
+	},
+
+	// Product Attributes key - val
+	props: {
+		bold: true,
+		fontSize: 9,
+		lineHeight: 1.3,
+	},
+
+	propVal: {
+		bold: false,
+	},
+
+	// Product image
+	productImageWrapper: {
+		height: pageSize.width / 2,
+		margin: 15,
+	},
+
+	productImage: {
+		alignment: 'center',
+	},
+
+	H2: {
+		fontSize: 14,
+		bold: true,
+		margin: [ 0, 15, 0, 5 ],
+	},
+
+	H3: {
+		fontSize: 12,
+		bold: true,
+		margin: [ 0, 15, 0, 5 ],
+	},
+
+	UL: {
+		margin: [ 10, 2, 0, 2 ],
+	},
+
+	A: {
+		color: '#0064bd',
+		decoration: 'underline',
+	},
+
+	// Product Title section
+	relatedTitle: {
+		fontSize: 8,
+		bold: true,
+		lineHeight: 1.1,
+	},
+	relatedSubTitle: {
+		fontSize: 7,
+	},
+};
+
 export class makeProductPDF {
 	date: Date;
 	fonts: FONTS;
 	/**
 	 * the pdf content array
 	 */
-	pdfContent: Record< string, any >[] = [];
+	pdfContent: Content = {};
 	mediaImages: MediaImage | null = null;
 	productData: ProductApiResponse;
 	extraData: Record< string, any >;
-	template: Record< string, any > | null = null;
+	template: TDocumentDefinitions;
 	productPDF: Record< string, any > | null = null;
+	private defaultStyle: Style | undefined = undefined;
+	private mainStyle: StyleDictionary | undefined = undefined;
+	private filename: string;
 
 	constructor( args: {
 		fonts: FONTS;
@@ -62,22 +152,51 @@ export class makeProductPDF {
 		this.productData = args.productData;
 
 		this.extraData = args.extraData;
+
+		this.defaultStyle = baseStyle;
+		this.mainStyle = mainStyle;
+
+		this.filename = `${ this.productData.slug }-${ yyyymmdd(
+			this.date
+		) }.pdf`;
 	}
 
 	parse() {
-		this.productPDF = this.getPageData();
+		this.productPDF = this.parsePageData();
+	}
 
-		// the header of the product pdf
-		this.pdfContent.push( this.generateHeder() );
-
-		// a link to the real product page on the website (with qr code)
-		this.pdfContent.push( this.generateLink( this.extraData.url ) );
-
-		// THE PDF DATA
+	build() {
 		this.template = this.buildTemplate();
 	}
 
-	generateLink( url: string ): Record< string, any > {
+	async generate() {
+		//const pdfMake = await import('pdfmake');
+
+		const pdfDocGenerator: TCreatedPdf = pdfMake.createPdf(
+			this.template,
+			{},
+			this.fonts
+		);
+
+		return pdfDocGenerator.getBlob( ( blob: Blob | MediaSource ) => {
+			const link = document.createElement( 'a' );
+
+			const blobURL = URL.createObjectURL( blob );
+			link.download = this.filename;
+			link.target = '_blank';
+			link.href = blobURL;
+			link.click();
+			return true;
+		} );
+	}
+
+	async process() {
+		this.build();
+		this.parse();
+		await this.generate();
+	}
+
+	generateLink( url: string ): Content | DynamicContent | undefined {
 		return {
 			stack: [
 				{
@@ -97,7 +216,7 @@ export class makeProductPDF {
 		};
 	}
 
-	getPageData(): ParsedProductData {
+	parsePageData(): ParsedProductData {
 		const parsedMetaData = {};
 		this.productData.meta_data.forEach( ( item: any ) => {
 			parsedMetaData[ item.key ] = item.value;
@@ -133,18 +252,8 @@ export class makeProductPDF {
 		};
 	}
 
-	// collect terms of a given taxonomy
-	collectTermsData( taxData ) {
-		const termsData: HTMLElement[] = taxData.children;
-		const taxonomy = [];
-		for ( let i = 0; i < termsData.length; i++ ) {
-			taxonomy.push( termsData[ i ].innerHTML );
-		}
-		return taxonomy;
-	}
-
 	// collect term data
-	productProps( props: Attribute[] ) {
+	parseAttributes( props: Attribute[] ) {
 		const formattedProps: {
 			text: ( string | { style: string; text: string } )[];
 		}[] = [];
@@ -299,135 +408,7 @@ export class makeProductPDF {
 		return json ? JSON.stringify( treeObject ) : treeObject;
 	}
 
-	mapDOMtoPDF( element: string ) {
-		const treeObject = {};
-
-		//Recursively loop through DOM elements and assign properties to object
-		const treePDF = (
-			element: { type: any; content: any },
-			object: { [ x: string ]: any }
-		) => {
-			// init the element
-			if ( element.type ) {
-				element.type = element.type.toLowerCase();
-			}
-			const nodeType = ifElement( element.type, [ 'p', 'li' ] )
-				? 'text'
-				: element.type;
-			object[ nodeType ] = [];
-
-			if ( element.content && element.content.length ) {
-				// for each element contained (p, li etc)
-				for ( let i = 0; i < element.content.length; i++ ) {
-					// if the element is consistent (to avoid "<p> </p>")
-					if (
-						( element.content[ i ].content !== undefined ||
-							element.content[ i ].text !== undefined ) &&
-						( element.content[ i ].content ||
-							element.content[ i ].text )
-					) {
-						const nodeList = element.content;
-
-						if (
-							typeof nodeList[ 0 ] === 'string' &&
-							nodeList.length === 1
-						) {
-							// it's a text node
-							object[ nodeType ] = nodeList;
-						} else if (
-							nodeList[ 0 ].text &&
-							nodeList.length === 1
-						) {
-							// this is it's a text node but with sub-elements
-							object[ nodeType ].push( {} );
-							object[ nodeType ][
-								object[ nodeType ].length - 1
-							].text = nodeList[ i ].text;
-						} else if (
-							nodeList[ i ].content &&
-							nodeList[ i ].content.length === 1 &&
-							! nodeList[ i ].content[ 0 ].content
-						) {
-							// the element the end of the branch - allowedElements() to check specific tag types
-							object[ nodeType ].push( {
-								text: nodeList[ i ].content[ 0 ],
-								style: nodeList[ i ].type,
-							} );
-
-							if ( nodeList[ i ].attrs ) {
-								// Add the attributes
-								Object.entries( nodeList[ i ].attrs ).forEach(
-									function ( attr ) {
-										object[ nodeType ][ i ][ attr[ 0 ] ] =
-											attr[ 1 ];
-									}
-								);
-							}
-
-							object[ nodeType ][
-								object[ nodeType ].length - 1
-							].style = nodeList[ i ].type;
-						} else {
-							// create a new array and push all the elements inside
-							object[ nodeType ].push( {} );
-
-							if ( nodeList[ i ].type === 'LI' ) {
-								// its a list node
-								object[ nodeType ][
-									object[ nodeType ].length - 1
-								].style = nodeList[ i ].type;
-								object[ nodeType ][
-									object[ nodeType ].length - 1
-								].type = nodeList[ i ].type;
-
-								// search for lists inside this list
-								const listChild = nodeList[ i ].content.filter(
-									( e ) => e.type === 'UL' || e.type === 'OL'
-								);
-								if ( listChild && listChild.length ) {
-									listChild.forEach( function ( child ) {
-										treePDF(
-											child,
-											object[ nodeType ][
-												object[ nodeType ].length - 1
-											]
-										);
-									} );
-								} else {
-									//if this has not list inside get the text
-									object[ nodeType ][
-										object[ nodeType ].length - 1
-									].text = nodeList[ i ].content;
-								}
-							} else if ( nodeList[ i ].type ) {
-								// this node has subnodes
-								object[ nodeType ][
-									object[ nodeType ].length - 1
-								].style = nodeList[ i ].type;
-								treePDF(
-									nodeList[ i ],
-									object[ nodeType ][
-										object[ nodeType ].length - 1
-									]
-								);
-							} else {
-								// is is a standard paragraph
-								nodeList[ i ].type = 'P';
-								object[ nodeType ] = nodeList;
-								break;
-							}
-						}
-					}
-				}
-			}
-		};
-
-		treePDF( element, treeObject );
-
-		return treeObject.body;
-	}
-
-	mapMediaToPDF( elements, sectionTitle = 'Media' ) {
+	formatMedia( elements, sectionTitle = 'Media' ) {
 		const mediaTree = [];
 
 		const sectionTitleSlug = this.toSlug( sectionTitle );
@@ -504,17 +485,12 @@ export class makeProductPDF {
 		return mediaTree;
 	}
 
-	buildSectionTitle( sectionTitle ) {
+	formatTitle( sectionTitle: string ) {
 		return { text: sectionTitle, style: 'H2', pageBreak: 'before' };
 	}
 
-	mapRelatedsToPDF(
-		elements: { content: { content: any[] }[] }[],
-		sectionTitle = 'Relateds'
-	) {
+	formatRelateds( elements: Content ) {
 		const relatedsTree: Record< string, any > = [];
-
-		const sectionTitleSlug: string = this.toSlug( sectionTitle );
 
 		elements.shift(); // remove the first item because it's the section main title
 
@@ -665,12 +641,7 @@ export class makeProductPDF {
 		return formattedColumns;
 	}
 
-	mapComparisonToTable(
-		elements: Record< string, any >,
-		sectionTitle = 'Comparison'
-	) {
-		const sectionTitleSlug = this.toSlug( sectionTitle );
-
+	mapComparisonToTable( elements: Record< string, any > ) {
 		const comparisonTreeHeader = [];
 		let comparisonTree = [];
 		const rows: Record< string, any > = [];
@@ -701,7 +672,8 @@ export class makeProductPDF {
 						{
 							fit: [ 40, 40 ],
 							margin: 3,
-							image: 'mediaImage_' + sectionTitleSlug + '_' + i,
+							image:
+								'mediaImage_' + this.productData.slug + '_' + i,
 						},
 						{
 							text: cellContent[ 0 ].content[ 0 ],
@@ -711,8 +683,9 @@ export class makeProductPDF {
 					],
 				} );
 
-				this.mediaImages[ 'mediaImage_' + sectionTitleSlug + '_' + i ] =
-					e.content[ 0 ].content[ 0 ].attrs[ 'data-src' ];
+				this.mediaImages[
+					'mediaImage_' + this.productData.slug + '_' + i
+				] = e.content[ 0 ].content[ 0 ].attrs[ 'data-src' ];
 			}
 			rowsTableWidth.push(
 				460 / comparisonTreeHeader[ 0 ][ 0 ].content.length < 200
@@ -749,32 +722,7 @@ export class makeProductPDF {
 		return comparisonTree;
 	}
 
-	async generate() {
-		//const pdfMake = await import('pdfmake');
-
-		const pdfDocGenerator: TCreatedPdf = pdfMake.createPdf(
-			this.productPDF,
-			null,
-			this.fonts
-		);
-
-		pdfDocGenerator.filename = `${ this.productData.slug }-${ yyyymmdd(
-			this.date
-		) }.pdf`;
-
-		return pdfDocGenerator.getBlob( ( blob: Blob | MediaSource ) => {
-			const link = document.createElement( 'a' );
-
-			const blobURL = URL.createObjectURL( blob );
-			link.download = pdfDocGenerator.filename;
-			link.target = '_blank';
-			link.href = blobURL;
-			link.click();
-			return true;
-		} );
-	}
-
-	private generateHeder(): Record< string, any > {
+	private generateHeder(): Content | DynamicContent | undefined {
 		return {
 			style: 'header',
 			layout: 'noBorders',
@@ -799,17 +747,17 @@ export class makeProductPDF {
 						{
 							stack: [
 								{
-									text: productData.name,
+									text: this.productData.name,
 									style: 'productTitle',
 								},
 								{
-									text: productData.description,
+									text: this.productData.description,
 									style: 'productSubTitle',
 								},
 								{
 									style: 'props',
 									stack: [
-										this.productProps(
+										this.parseAttributes(
 											this.productData.attributes
 										),
 									],
@@ -849,6 +797,15 @@ export class makeProductPDF {
 		];
 	}
 
+	private pageBreakBefore(
+		currentNode: { headlineLevel: number },
+		followingNodesOnPage: string | any[]
+	): TDocumentDefinitions[ 'pageBreakBefore' ] {
+		return (
+			currentNode.headlineLevel === 1 && followingNodesOnPage.length === 0
+		);
+	}
+
 	private footer(
 		currentPage: number,
 		pageCount: number
@@ -876,13 +833,13 @@ export class makeProductPDF {
 							' - ',
 						bold: true,
 					},
-					this.productData.address,
+					this.extraData.address,
 				],
 			},
 		];
 	}
 
-	private buildTemplate(): Record< string, any > {
+	private buildTemplate(): TDocumentDefinitions {
 		return {
 			// a string or { width: number, height: number }
 			pageSize,
@@ -900,98 +857,14 @@ export class makeProductPDF {
 				keywords: `${ this.productData.name } ${ this.productData.name }`,
 			},
 
-			header: () => this.header,
-			footer: this.footer,
+			header: this.generateHeder(),
+			footer: this.generateLink( this.extraData.url ),
 
-			content: [ this.pdfContent ],
-			images: this.mediaImages,
-			styles: {
-				// Wrappers
-				header: {
-					margin: [ 0, 0, 0, 10 ],
-				},
-
-				// Product Title section
-				productTitle: {
-					fontSize: 16,
-					bold: true,
-					margin: [ 0, 15, 0, 0 ],
-				},
-				productSubTitle: {
-					fontSize: 9,
-					bold: false,
-					margin: [ 0, 0, 0, 15 ],
-				},
-
-				// Product Attributes key - val
-				props: {
-					bold: true,
-					fontSize: 9,
-					lineHeight: 1.3,
-				},
-
-				propVal: {
-					bold: false,
-				},
-
-				// Product image
-				productImageWrapper: {
-					height: pageSize.width / 2,
-					margin: 15,
-				},
-
-				productImage: {
-					alignment: 'center',
-				},
-
-				H2: {
-					fontSize: 14,
-					bold: true,
-					margin: [ 0, 15, 0, 5 ],
-				},
-
-				H3: {
-					fontSize: 12,
-					bold: true,
-					margin: [ 0, 15, 0, 5 ],
-				},
-
-				UL: {
-					margin: [ 10, 2, 0, 2 ],
-				},
-
-				A: {
-					color: '#0064bd',
-					decoration: 'underline',
-				},
-
-				// Product Title section
-				relatedTitle: {
-					fontSize: 8,
-					bold: true,
-					lineHeight: 1.1,
-				},
-				relatedSubTitle: {
-					fontSize: 7,
-				},
-			},
-
-			defaultStyle: {
-				fontSize: 9,
-				lineHeight: 1.2,
-				columnGap: 20,
-				font: 'Klavika',
-			},
-
-			pageBreakBefore(
-				currentNode: { headlineLevel: number },
-				followingNodesOnPage: string | any[]
-			) {
-				return (
-					currentNode.headlineLevel === 1 &&
-					followingNodesOnPage.length === 0
-				);
-			},
+			content: this.pdfContent,
+			images: [], // this.mediaImages
+			defaultStyle: this.defaultStyle,
+			styles: this.mainStyle,
+			pageBreakBefore: this.pageBreakBefore,
 		};
 	}
 }

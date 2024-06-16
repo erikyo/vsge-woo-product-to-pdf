@@ -25,7 +25,17 @@ export interface WebpageData {
 	comparison: string | null;
 }
 
-export type FONTS = Record<string, Record<string, string>>;
+export type FONTS = Record< string, Record< string, string > >;
+
+export type Attribute = {
+	id: number;
+	name: string;
+	slug: string;
+	position: number;
+	visible: boolean;
+	variation: boolean;
+	options: string[];
+};
 
 export interface ProductApiResponse {
 	id: number;
@@ -86,6 +96,30 @@ export interface ProductApiResponse {
 	cross_sell_ids: number[];
 	parent_id: number;
 	purchase_note: string;
+	applications: {
+		term_id: number;
+		name: string;
+		slug: string;
+		term_group: number;
+		term_taxonomy_id: number;
+		taxonomy: string;
+		description: string;
+		parent: number;
+		count: number;
+		filter: string;
+	}[];
+	approvals: {
+		term_id: number;
+		name: string;
+		slug: string;
+		term_group: number;
+		term_taxonomy_id: number;
+		taxonomy: string;
+		description: string;
+		parent: number;
+		count: number;
+		filter: string;
+	}[];
 	categories: {
 		id: number;
 		name: string;
@@ -106,15 +140,7 @@ export interface ProductApiResponse {
 		name: string;
 		alt: string;
 	}[];
-	attributes: {
-		id: number;
-		name: string;
-		slug: string;
-		position: number;
-		visible: boolean;
-		variation: boolean;
-		options: string[];
-	}[];
+	attributes: Attribute[];
 	variations: {
 		id: number;
 		date_created: Date | string;
@@ -144,5 +170,11 @@ export interface ProductApiResponse {
 		}[];
 	};
 	lang: string;
-	translations: Record<string, number>;
+	translations: Record< string, number >;
+	related: number[];
+	accessories: number[];
+	similar: number[];
+	components: number[];
+	delivery: number[];
+	package: number[];
 }

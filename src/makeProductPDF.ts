@@ -130,11 +130,11 @@ export class makeProductPDF {
 	/**
 	 * the pdf content array
 	 */
-	pdfContent: Content = {};
+	pdfContent: Content = [];
 	mediaImages: MediaImage | null = null;
 	productData: ProductApiResponse;
 	extraData: Record< string, any >;
-	template: TDocumentDefinitions;
+	template: TDocumentDefinitions | null = null;
 	productPDF: Record< string, any > | null = null;
 	private defaultStyle: Style | undefined = undefined;
 	private mainStyle: StyleDictionary | undefined = undefined;
@@ -191,9 +191,9 @@ export class makeProductPDF {
 	}
 
 	async process() {
-		this.build();
 		this.parse();
-		await this.generate();
+		this.build();
+		return await this.generate();
 	}
 
 	generateLink( url: string ): Content | DynamicContent | undefined {
@@ -839,7 +839,7 @@ export class makeProductPDF {
 		];
 	}
 
-	private buildTemplate(): TDocumentDefinitions {
+	buildTemplate(): TDocumentDefinitions {
 		return {
 			// a string or { width: number, height: number }
 			pageSize,
@@ -861,7 +861,7 @@ export class makeProductPDF {
 			footer: this.generateLink( this.extraData.url ),
 
 			content: this.pdfContent,
-			images: [], // this.mediaImages
+			//images: {}, // this.mediaImages
 			defaultStyle: this.defaultStyle,
 			styles: this.mainStyle,
 			pageBreakBefore: this.pageBreakBefore,

@@ -24,9 +24,7 @@ async function genPDF( args ) {
 		extraData: ExtraProductData as Record< string, any >,
 	} );
 
-	product2pdf.parse();
-
-	return await product2pdf.generate();
+	return await product2pdf.process();
 }
 
 // on click trigger the PDf from HTML fn
